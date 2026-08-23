@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Production build artifacts
+dist/
+client/dist/
+
+# Secret environment files
+.env
+.env.*
+client/.env
+src/.env
+!.env.example
+
+# Datasets / large data files
+*.csv
+*.xlsx
+*.xls
+*.json
+*.parquet
+*.feather
+
+# OS files
+.DS_Store
+Thumbs.db
