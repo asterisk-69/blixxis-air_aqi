@@ -50,10 +50,10 @@ const UAE_STATION_COORDINATES: Record<string, { latitude: number; longitude: num
 
 // Multi-tiered registry match lookup (Exact, Suffix-stripped, Proximity)
 export function findRegistryMatch(
-  histName: string, 
-  histCountry: string, 
-  histLat: number, 
-  histLng: number, 
+  histName: string,
+  histCountry: string,
+  histLat: number,
+  histLng: number,
   registry: EnvironmentalStation[]
 ): string | null {
   const normHist = normalizeName(histName);
@@ -84,7 +84,7 @@ export function findRegistryMatch(
   if (!isNaN(histLat) && !isNaN(histLng)) {
     let closestId: string | null = null;
     let minDistance = Infinity;
-    
+
     for (const reg of registry) {
       if (isSameCountry(reg.country, histCountry)) {
         if (!isNaN(reg.latitude) && !isNaN(reg.longitude)) {
@@ -206,7 +206,7 @@ function splitCSVLine(line: string): string[] {
 }
 
 // Target directory for dataset files
-const DATA_DIR = path.resolve(__dirname, '../../../client/src/data');
+const DATA_DIR = path.resolve(__dirname, '../../data');
 const NORMALIZED_CSV = path.join(DATA_DIR, 'normalized_air_quality_india_uae_saudi.csv');
 const COMBINED_AQ_CSV = path.join(DATA_DIR, 'combined_3country_air_quality.csv');
 const COMBINED_WEATHER_CSV = path.join(DATA_DIR, 'combined_3country_hourly_weather.csv');
@@ -266,20 +266,20 @@ function calculateSubIndex(val: any, ranges: { bpLo: number; bpHi: number; iLo: 
   if (val === null || val === undefined || typeof val !== 'number' || isNaN(val) || !isFinite(val) || val < 0) {
     return null;
   }
-  
+
   for (const r of ranges) {
     if (val >= r.bpLo && val <= r.bpHi) {
       const result = ((r.iHi - r.iLo) / (r.bpHi - r.bpLo)) * (val - r.bpLo) + r.iLo;
       return Math.round(result);
     }
   }
-  
+
   const last = ranges[ranges.length - 1];
   if (val > last.bpHi) {
     const result = ((500 - last.iLo) / (last.bpHi - last.bpLo)) * (val - last.bpLo) + last.iLo;
     return Math.min(500, Math.round(result));
   }
-  
+
   return null;
 }
 
@@ -302,7 +302,7 @@ export class EnvironmentalDataService {
   private static async _initialize(): Promise<void> {
     try {
       console.log('[EnvironmentalDataService] Starting backend datasets ingestion...');
-      
+
       // Helper to compute timestamp value
       const getTimestampTime = (row: any) => {
         const dateStr = row.date || row.year || '';
@@ -382,7 +382,7 @@ export class EnvironmentalDataService {
             source_row_id: latestRow.source_row_id,
             source_unit_notes: latestRow.source_unit_notes
           };
-          
+
           const aqiResult = this.calculateAQI(stationTemp);
           stationTemp.aqi = aqiResult.aqi;
           stationTemp.calculatedAqi = aqiResult.calculatedAqi;
@@ -392,7 +392,7 @@ export class EnvironmentalDataService {
           stationTemp.aqiMethod = aqiResult.aqiMethod;
           stationTemp.aqiSource = aqiResult.aqiSource;
           stationTemp.aqiUnavailableReason = aqiResult.aqiUnavailableReason;
-          
+
           const riskVal = this.calculatePollutantRiskScore(stationTemp);
           stationTemp.pollutantRiskScore = riskVal;
           stationTemp.riskScore = riskVal;
@@ -413,8 +413,8 @@ export class EnvironmentalDataService {
         const isImportantCity = (city: string): boolean => {
           const c = city.toLowerCase();
           const majors = [
-            'delhi', 'new delhi', 'gwalior', 'mumbai', 'kolkata', 'chennai', 
-            'bengaluru', 'hyderabad', 'ahmedabad', 'lucknow', 'jaipur', 
+            'delhi', 'new delhi', 'gwalior', 'mumbai', 'kolkata', 'chennai',
+            'bengaluru', 'hyderabad', 'ahmedabad', 'lucknow', 'jaipur',
             'patna', 'bhopal', 'guwahati', 'srinagar'
           ];
           return majors.some(m => c === m || c.includes(m));
@@ -463,7 +463,7 @@ export class EnvironmentalDataService {
       if (fs.existsSync(COMBINED_AQ_CSV)) {
         const text = fs.readFileSync(COMBINED_AQ_CSV, 'utf-8');
         const lines = text.split(/\r?\n/);
-        
+
         // Cache for matched station IDs (key: "station_name:::country" -> stationId or null)
         const matchCache = new Map<string, string | null>();
 
@@ -472,10 +472,10 @@ export class EnvironmentalDataService {
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i];
           if (!line) continue;
-          
+
           const parts = splitCSVLine(line);
           if (parts.length < 9) continue;
-          
+
           const [timestamp, latStr, lngStr, station_name, city, country, pollutant, unit, valueStr] = parts;
           const value = parseFloat(valueStr);
           if (isNaN(value) || !station_name) continue;
@@ -508,7 +508,7 @@ export class EnvironmentalDataService {
 
           loadedRows++;
         }
-        
+
         // Sort and prune histories to the latest 100 entries (enough for daily/hourly regressions)
         for (const [stationId, obs] of this.aqHistoryData.entries()) {
           obs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -523,18 +523,18 @@ export class EnvironmentalDataService {
       if (fs.existsSync(COMBINED_WEATHER_CSV)) {
         const text = fs.readFileSync(COMBINED_WEATHER_CSV, 'utf-8');
         const lines = text.split(/\r?\n/);
-        
+
         let loadedRows = 0;
         // Skip header lines[0]
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i];
           if (!line) continue;
-          
+
           const parts = splitCSVLine(line);
           if (parts.length < 15) continue;
-          
+
           const [
-            timestamp, latStr, lngStr, station_name, city, country, 
+            timestamp, latStr, lngStr, station_name, city, country,
             tempStr, humidityStr, windSpStr, windDirStr, precStr, rainStr, pressStr, cloudStr, solarStr
           ] = parts;
 
@@ -579,7 +579,7 @@ export class EnvironmentalDataService {
       console.log('[EnvironmentalDataService] Pre-computing static weather matches...');
       for (const station of this.stationsRegistry) {
         const key = normalizeName(station.station);
-        
+
         // Priority 1: Exact Name Match
         if (this.weatherHistoryData.has(key)) {
           this.stationWeatherMatch.set(station.id, {
@@ -641,7 +641,7 @@ export class EnvironmentalDataService {
   // Pre-calculate hotspots list and cache them
   private static precomputeHotspots(): void {
     this.hotspotsCache.clear();
-    
+
     // Group hotspots by country filters
     const countries = ['all', 'india', 'saudi arabia', 'united arab emirates'];
     for (const country of countries) {
@@ -656,7 +656,7 @@ export class EnvironmentalDataService {
           const hasAqi = station.aqi !== null && station.aqi !== undefined && !isNaN(station.aqi);
           const effectiveScore = hasAqi ? station.aqi! : (riskScore !== null ? riskScore : 0);
           const scoreRisk = Math.min(effectiveScore / 150, 1.0);
-          
+
           const history = this.aqHistoryData.get(station.id) || [];
           let trend = 5;
 
@@ -672,7 +672,7 @@ export class EnvironmentalDataService {
           }
 
           const trendRisk = Math.max(-0.5, Math.min(1.0, trend / 30));
-          
+
           let densityRisk = 0.3;
           if (station.city === "New Delhi" || station.city === "Lucknow") densityRisk = 0.8;
           else if (station.city === "Mumbai" || station.city === "Dubai") densityRisk = 0.5;
@@ -712,8 +712,8 @@ export class EnvironmentalDataService {
 
   // Check if unit is verified
   static isUnitVerified(station: EnvironmentalStation): boolean {
-    if (station.source_unit_notes?.toLowerCase().includes('unverified') || 
-        station.source_unit_notes?.toLowerCase().includes('unknown')) {
+    if (station.source_unit_notes?.toLowerCase().includes('unverified') ||
+      station.source_unit_notes?.toLowerCase().includes('unknown')) {
       return false;
     }
     return true;
@@ -830,7 +830,7 @@ export class EnvironmentalDataService {
         dominantPollutant: null,
         aqiMethod: null,
         aqiSource: null,
-        aqiUnavailableReason: isAnnual 
+        aqiUnavailableReason: isAnnual
           ? 'AQI unavailable — annual observations do not support short-term AQI calculation.'
           : 'Insufficient metadata or averaging period for defensible AQI calculation.'
       };
@@ -899,7 +899,7 @@ export class EnvironmentalDataService {
     if (countryKey === 'uae' || countryKey === 'united arab emirates') {
       countryKey = 'united arab emirates';
     }
-    
+
     return this.hotspotsCache.get(countryKey) || [];
   }
 
@@ -946,7 +946,7 @@ export class EnvironmentalDataService {
         forecast24h: 0,
         forecastTimeline: [],
         insufficientData: true,
-        message: isUae 
+        message: isUae
           ? 'Short-term forecasting unavailable for annual UAE observations.'
           : 'Short-term forecasting unavailable for annual observations.'
       };
@@ -1042,7 +1042,7 @@ export class EnvironmentalDataService {
 
     const recentHistory = timelinePoints.slice(Math.max(0, timelinePoints.length - 4), timelinePoints.length - 1).map(p => p.score);
     const currentScore = startValue;
-    
+
     let recentTrend = 5;
     if (recentHistory.length > 0) {
       const prev = recentHistory[recentHistory.length - 1];
@@ -1080,7 +1080,7 @@ export class EnvironmentalDataService {
     if (!match || match.matchType === 'NONE') {
       return { weather: null, matchType: 'NONE' };
     }
-    
+
     const list = this.weatherHistoryData.get(match.weatherStationKey);
     const weather = list && list.length > 0 ? list[list.length - 1] : null;
     return {
