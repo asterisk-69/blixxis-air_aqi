@@ -1,7 +1,8 @@
 import type { EnvironmentalStation, Hotspot, AQIForecast, CitizenReport, OperationalAlert, AQISeverity, EnvironmentalContext, EnvironmentalValue } from '../types/environmental';
 import { MOCK_STATIONS, MOCK_FORECASTS, MOCK_CITIZEN_REPORTS, MOCK_ALERTS } from '../data/mockData';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 // Helper to determine AQI severity text and color
 export const getAQISeverity = (aqi: number | null | undefined): AQISeverity => {
@@ -53,19 +54,19 @@ export const getStationSeverity = (station: EnvironmentalStation): string => {
   const prefMetric = localStorage.getItem('blixxis_pref_metric') || 'AQI';
   const hasAqi = station.aqi !== null && station.aqi !== undefined && !isNaN(station.aqi);
   const hasRisk = station.riskScore !== null && station.riskScore !== undefined && !isNaN(station.riskScore);
-  
+
   if (prefMetric === 'Risk' && hasRisk) {
     return `${getRiskSeverity(station.riskScore)} Risk`;
   }
-  
+
   if (hasAqi && station.aqiCategory && station.aqiCategory !== 'Unavailable') {
     return station.aqiCategory;
   }
-  
+
   if (hasRisk) {
     return `${getRiskSeverity(station.riskScore)} Risk`;
   }
-  
+
   return 'Unknown';
 };
 
@@ -106,22 +107,22 @@ export const calculateHotspotScore = (station: EnvironmentalStation): Hotspot =>
 
   const aqiRisk = hasAqi ? Math.min(station.aqi! / 300, 1.0) : (riskScore !== null ? Math.min(riskScore / 300, 1.0) : 0.3);
   const pm25Risk = isNaN(station.pm25) ? 0.2 : Math.min(station.pm25 / 150, 1.0);
-  
+
   let trend = 5;
   const targetVal = hasAqi ? station.aqi! : (riskScore !== null ? riskScore : 50);
   if (targetVal > 200) trend = 25;
   else if (targetVal > 150) trend = 18;
   else if (targetVal > 100) trend = 12;
   else if (targetVal < 70) trend = -4;
-  
+
   const trendRisk = Math.max(0, trend / 30);
-  
+
   let densityRisk = 0.3;
   if (station.city === "New Delhi" || station.city === "Lucknow") densityRisk = 0.8;
   else if (station.city === "Mumbai" || station.city === "Dubai") densityRisk = 0.5;
 
   const score = (0.50 * aqiRisk + 0.25 * pm25Risk + 0.15 * trendRisk + 0.10 * densityRisk) * 100;
-  
+
   let status: Hotspot['status'] = 'Normal';
   if (score >= 70) status = 'Critical';
   else if (score >= 50) status = 'Emerging';
@@ -224,7 +225,7 @@ export class EnvironmentalDataService {
         if (filters?.state) {
           url.searchParams.append('state', filters.state);
         }
-        
+
         const response = await fetch(url.toString());
         if (response.ok) {
           return await response.json();
@@ -233,7 +234,7 @@ export class EnvironmentalDataService {
         this.isFallback = true;
       }
     }
-    
+
     // Local Fallback
     let stations = [...MOCK_STATIONS];
     if (filters?.country && filters.country !== 'All Countries' && filters.country !== 'All') {
@@ -265,7 +266,7 @@ export class EnvironmentalDataService {
         this.isFallback = true;
       }
     }
-    
+
     // Local Fallback
     return MOCK_STATIONS.find(s => s.id === id) || null;
   }
@@ -334,14 +335,14 @@ export class EnvironmentalDataService {
         forecast24h: 0,
         forecastTimeline: [],
         insufficientData: true,
-        message: isUae 
+        message: isUae
           ? 'Short-term forecasting unavailable for annual UAE observations.'
           : 'Short-term forecasting unavailable for annual observations.'
       };
     }
 
     const currentAqi = station ? station.aqi : 100;
-    
+
     const trendMultiplier = (currentAqi && currentAqi > 120) ? 1.12 : 0.98;
     const f6h = Math.round((currentAqi || 100) * (1 + (trendMultiplier - 1) * 0.4));
     const f12h = Math.round((currentAqi || 100) * (1 + (trendMultiplier - 1) * 0.8));
@@ -413,7 +414,7 @@ export class EnvironmentalDataService {
     trend: number | null
   ): EnvironmentalContext {
     const isAqiMissing = station.aqi === undefined || station.aqi === null || isNaN(station.aqi);
-    
+
     // (Unused standard limits commented out to resolve TS errors)
     // const pm25Std = 60;
     // const pm10Std = 100;
